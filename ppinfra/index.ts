@@ -1,6 +1,15 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as synced_folder from "@pulumi/synced-folder";
+import * as aws from "@pulumi/aws";
+
+// Optional: for clarity, print region (debugging)
+const region = aws.config.region;
+
+// Force provider to use environment credentials (from ESC)
+const provider = new aws.Provider("default", {
+  region: region || "us-west-2", // or whatever you're using
+});
 
 // Import the program's configuration settings.
 const config = new pulumi.Config();
