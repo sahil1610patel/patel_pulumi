@@ -1,45 +1,53 @@
-name: main
+name: Deploy Infrastructure
 
+# Trigger on pushes to the main branch (and allow manual triggers too)
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   pulumi-up:
-    name: pulumi-up
+    name: Pulumi up
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 18
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
       - name: Install Dependencies
         working-directory: ./ppinfra
-        run: npm install
+        run: npm ci
 
-     # Pulumi ESC action to retrieve AWS creds via OIDC (if configured)
+      # (Optional) Configure AWS credentials if not using OIDC/ESC
+      # - name: Configure AWS Credentials (if using static credentials)
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ secrets.AWS_REGION }}
+
+      # Pulumi ESC action to retrieve AWS creds via OIDC (if configured)
       - name: Pulumi ESC - Fetch AWS OIDC Credentials
         if: ${{ secrets.AWS_ACCESS_KEY_ID == '' }}  # only run if not using static AWS creds
         uses: pulumi/esc-action@v1
         with:
           environment: "patel_pulumi"
 
-
-      - uses: pulumi/actions@v5
+      - name: Run Pulumi Up
+        uses: pulumi/actions@v5
         with:
           command: up
-          stack-name: sahil1610patel/myworkshop/dev
+          stack-name: sahil1610patel/myworkshop/dev   # For personal acct, use "myworkshop/dev"
           work-dir: ./ppinfra
+          cloud-url: https://api.pulumi.com  # ensure using Pulumi Cloud
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          # If you do not have Pulumi ESC configured then uncomment: 
-          #AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          #AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          #AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-
+          # The AWS credentials environment variables will be automatically picked up:
+          # - If using static credentials, aws-actions sets them in the env.
+          # - If using Pulumi ESC, the esc-action injects AWS_ACCESS_KEY_ID, etc.
