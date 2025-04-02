@@ -26,7 +26,7 @@ jobs:
       - name: Pulumi ESC - Fetch AWS OIDC Credentials
         uses: pulumi/esc-action@v1
         with:
-          environment: "Environments/patel/patel_pulumi"
+          environment: "sahil1610patel/patel/patel_pulumi"
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
 
