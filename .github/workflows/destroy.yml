@@ -1,10 +1,11 @@
 name: main
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger only
+    inputs:
+      confirm:
+        description: "Type DESTROY to confirm execution"
+        required: true
 
 jobs:
   pulumi-destroy:
