@@ -1,6 +1,5 @@
 name: Deploy Infrastructure
 
-# Trigger on pushes to the main branch (and allow manual triggers too)
 on:
   push:
     branches: [ main ]
@@ -24,17 +23,7 @@ jobs:
         working-directory: ./ppinfra
         run: npm ci
 
-      # (Optional) Configure AWS credentials if not using OIDC/ESC
-      # - name: Configure AWS Credentials (if using static credentials)
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ secrets.AWS_REGION }}
-
-      # Pulumi ESC action to retrieve AWS creds via OIDC (if configured)
       - name: Pulumi ESC - Fetch AWS OIDC Credentials
-        if: ${{ secrets.AWS_ACCESS_KEY_ID == '' }}  # only run if not using static AWS creds
         uses: pulumi/esc-action@v1
         with:
           environment: "patel_pulumi"
@@ -43,11 +32,8 @@ jobs:
         uses: pulumi/actions@v5
         with:
           command: up
-          stack-name: sahil1610patel/myworkshop/dev   # For personal acct, use "myworkshop/dev"
+          stack-name: sahil1610patel/myworkshop/dev
           work-dir: ./ppinfra
-          cloud-url: https://api.pulumi.com  # ensure using Pulumi Cloud
+          cloud-url: https://api.pulumi.com
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          # The AWS credentials environment variables will be automatically picked up:
-          # - If using static credentials, aws-actions sets them in the env.
-          # - If using Pulumi ESC, the esc-action injects AWS_ACCESS_KEY_ID, etc.
