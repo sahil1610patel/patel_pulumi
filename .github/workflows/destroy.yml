@@ -39,7 +39,7 @@ jobs:
         if: ${{ secrets.AWS_ACCESS_KEY_ID == '' }}
         uses: pulumi/esc-action@v1
         with:
-          environment: "Environments / patel / patel_pulumi"
+          environment: "patel_pulumi"
 
       - name: Run Pulumi Destroy
         uses: pulumi/actions@v5
