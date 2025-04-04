@@ -3,7 +3,7 @@ import * as pulumi from "@pulumi/pulumi";
 
 // ✅ Use ESC-injected credentials via a provider
 const provider = new aws.Provider("escProvider", {
-  region: "us-east-1", // Or your actual AWS region
+  region: "us-west-2", // Or your actual AWS region
 });
 
 // ✅ S3 Bucket for static website
