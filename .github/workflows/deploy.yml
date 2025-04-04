@@ -1,41 +1,73 @@
-name: Deploy Infrastructure
+import * as aws from "@pulumi/aws";
+import * as pulumi from "@pulumi/pulumi";
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+// ✅ Use ESC-injected credentials via a provider
+const provider = new aws.Provider("escProvider", {
+  region: "us-east-1", // Or your actual AWS region
+});
 
-jobs:
-  pulumi-up:
-    name: Pulumi up
-    runs-on: ubuntu-latest
+// ✅ S3 Bucket for static website
+const bucket = new aws.s3.Bucket("websiteBucket", {
+  website: {
+    indexDocument: "index.html",
+  },
+}, { provider });
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+// ✅ S3 Bucket Policy to allow public read access
+const bucketPolicy = new aws.s3.BucketPolicy("bucketPolicy", {
+  bucket: bucket.id,
+  policy: bucket.id.apply(bucketName => JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [{
+      Effect: "Allow",
+      Principal: "*",
+      Action: ["s3:GetObject"],
+      Resource: [`arn:aws:s3:::${bucketName}/*`],
+    }],
+  })),
+}, { provider });
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+// ✅ Upload a sample index.html file
+const indexFile = new aws.s3.BucketObject("index", {
+  bucket: bucket,
+  key: "index.html",
+  content: "<html><body><h1>Hello from Pulumi + CloudFront!</h1></body></html>",
+  contentType: "text/html",
+}, { provider });
 
-      - name: Install Dependencies
-        working-directory: ./ppinfra
-        run: npm ci
+// ✅ CloudFront Distribution
+const cdn = new aws.cloudfront.Distribution("cdnDistribution", {
+  enabled: true,
+  origins: [{
+    domainName: bucket.websiteEndpoint,
+    originId: "myS3Origin",
+    customOriginConfig: {
+      originProtocolPolicy: "http-only",
+      httpPort: 80,
+      httpsPort: 443,
+      originSslProtocols: ["TLSv1.2"],
+    },
+  }],
+  defaultCacheBehavior: {
+    targetOriginId: "myS3Origin",
+    viewerProtocolPolicy: "redirect-to-https",
+    allowedMethods: ["GET", "HEAD", "OPTIONS"],
+    cachedMethods: ["GET", "HEAD"],
+    forwardedValues: {
+      queryString: false,
+      cookies: { forward: "none" },
+    },
+  },
+  restrictions: {
+    geoRestriction: {
+      restrictionType: "none",
+    },
+  },
+  viewerCertificate: {
+    cloudfrontDefaultCertificate: true,
+  },
+}, { provider });
 
-      - name: Pulumi ESC - Fetch AWS OIDC Credentials
-        uses: pulumi/esc-action@v1
-        with:
-          environment: "sahil1610patel/patel/patel_pulumi"
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-
-      - name: Run Pulumi Up
-        uses: pulumi/actions@v5
-        with:
-          command: up
-          stack-name: sahil1610patel/myworkshop/dev
-          work-dir: ./ppinfra
-          cloud-url: https://api.pulumi.com
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+// ✅ Export the S3 and CloudFront URLs
+export const s3WebsiteUrl = bucket.websiteEndpoint;
+export const cloudFrontUrl = cdn.domainName;
