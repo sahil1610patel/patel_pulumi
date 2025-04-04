@@ -83,4 +83,4 @@ jobs:
         run: |
           pulumi stack select prod
           pulumi destroy --yes
-          pulumi stack rm prod --yes
+          pulumi stack rm prod --yes
