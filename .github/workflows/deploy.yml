@@ -1,24 +1,50 @@
 name: Deploy Static Website with OIDC
+
+# Trigger the workflow on push to the main branch
 on:
   push:
     branches: [ main ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      contents: read
+      id-token: write   # Required for OIDC token generation
+      contents: read   # Required to read the repository contents
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      # Step 1: Checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
-      - run: npm install
-      - uses: aws-actions/configure-aws-credentials@v2
+          cache: 'npm'  # Cache npm dependencies to speed up future runs
+
+      # Step 3: Debug - List files to ensure package.json exists
+      - name: List files in repository
+        run: ls -la
+
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 5: Configure AWS credentials using OIDC
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::975050105141:role/PulumiESC-DevRole
           aws-region: us-east-1
-      - uses: pulumi/actions@v5
+
+      # Step 6: Verify AWS credentials (for debugging)
+      - name: Verify AWS Credentials
+        run: aws sts get-caller-identity
+
+      # Step 7: Deploy the Pulumi stack
+      - name: Deploy with Pulumi
+        uses: pulumi/actions@v5
         with:
           command: up
           stack-name: sahil1610patel/myworkshop/dev
