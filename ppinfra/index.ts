@@ -6,8 +6,8 @@ import * as aws from "@pulumi/aws";
 const region = aws.config.region;
 
 // Force provider to use environment credentials (from ESC)
-const provider = new aws.Provider("default", {
-  region: region || "us-west-2", // or whatever you're using
+const provider = new aws.Provider("escProvider", {
+  region: "us-west-2", // or your preferred region
 });
 
 // Import the program's configuration settings.
@@ -17,7 +17,13 @@ const indexDocument = config.get("indexDocument") || "index.html";
 const errorDocument = config.get("errorDocument") || "error.html";
 
 // Create an S3 bucket and configure it as a website.
-const bucket = new aws.s3.BucketV2("bucket");
+const bucket = new aws.s3.Bucket("my-bucket", {
+  // your config here
+}, { provider });
+
+const distribution = new aws.cloudfront.Distribution("my-cdn", {
+  // your config here
+}, { provider });
 
 const bucketWebsite = new aws.s3.BucketWebsiteConfigurationV2("bucketWebsite", {
     bucket: bucket.bucket,
