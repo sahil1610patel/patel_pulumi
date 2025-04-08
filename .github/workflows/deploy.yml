@@ -1,19 +1,31 @@
+name: Deploy Static Website
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure AWS OIDC Credentials
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: arn:aws:iam::975050105141:role/PulumiOIDCRole
           aws-region: us-west-2
 
-      - uses: pulumi/actions@v4
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Pulumi Up
+        uses: pulumi/actions@v4
         with:
           command: up
         env:
