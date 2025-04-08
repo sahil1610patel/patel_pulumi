@@ -1,86 +1,20 @@
-name: Deploy and Destroy Static Website
-
-on:
-  push:
-    branches:
-      - main
-
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Set up Pulumi
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-        run: pulumi login
-    
-      - name: Retrieve AWS IAM Role ARN from Pulumi
-        run: |
-          echo "Retrieving AWS_ROLE_ARN from Pulumi environment..."
-          AWS_ROLE_ARN=$(pulumi env open sahil1610patel/myworkshop/dev environmentVariables.pulumiArn | tr -d '"')
-          echo "PULUMI_AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_ENV
-      
       - name: Configure AWS OIDC Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-            role-to-assume: ${{ env.PULUMI_AWS_ROLE_ARN }}
-            role-session-name: GitHubActionsSession
-            aws-region: us-west-2
-             
-      - name: Install Pulumi Dependencies
-        run: |
-          pip install pulumi pulumi-aws
-
-      - name: Deploy with Pulumi
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          AWS_REGION: us-west-2
-        run: |
-          pulumi stack select prod
-          pulumi up --yes
-
-  destroy:
-    needs: deploy  # Ensures 'destroy' runs only after 'deploy' completes successfully
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Set up Pulumi
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-        run: pulumi login
-
-      - name: Retrieve AWS IAM Role ARN from Pulumi
-        run: |
-          echo "Retrieving AWS_ROLE_ARN from Pulumi environment..."
-          AWS_ROLE_ARN=$(pulumi env open sahil1610patel/myworkshop/dev environmentVariables.pulumiArn | tr -d '"')
-          echo "PULUMI_AWS_ROLE_ARN=$AWS_ROLE_ARN" >> $GITHUB_ENV
-
-      
-      - name: Configure AWS OIDC Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ env.PULUMI_AWS_ROLE_ARN }}
-          role-session-name: GitHubActionsSession
+          role-to-assume: arn:aws:iam::975050105141:role/PulumiOIDCRole
           aws-region: us-west-2
 
-      - name: Install Pulumi Dependencies
-        run: |
-          pip install pulumi pulumi-aws
-
-      - name: Destroy Pulumi Resources
+      - uses: pulumi/actions@v4
+        with:
+          command: up
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          AWS_REGION: us-west-2
-        run: |
-          pulumi stack select prod
-          pulumi destroy --yes
-          pulumi stack rm prod --yes
